@@ -33,10 +33,7 @@ h1 {
   -webkit-text-fill-color: transparent;
 }
 
-h2 {
-  text-align: center;
-  margin-top: 40px;
-}
+h2 { text-align:center; margin-top:40px; }
 
 .card {
   background: rgba(255,255,255,0.05);
@@ -45,11 +42,6 @@ h2 {
   padding: 25px;
   margin-top: 25px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  transition: 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-5px);
 }
 
 .price-box {
@@ -77,8 +69,10 @@ input, select {
   margin-top: 6px;
   border-radius: 10px;
   border: none;
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
+  text-align: right; /* RATA KANAN */
+  font-weight: 600;
 }
 
 input:focus, select:focus {
@@ -100,25 +94,18 @@ input:focus, select:focus {
 
 .calc-btn:hover {
   transform: scale(1.03);
-  opacity: 0.95;
 }
 
 .result {
   margin-top: 20px;
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.8;
   font-weight: 600;
+  text-align: right; /* HASIL JUGA RATA KANAN */
 }
 
 .profit { color: #22c55e; }
 .loss { color: #ef4444; }
-
-.seo-text {
-  margin-top: 40px;
-  font-size: 14px;
-  line-height: 1.8;
-  opacity: 0.85;
-}
 
 .footer-link {
   text-align: center;
@@ -134,7 +121,6 @@ input:focus, select:focus {
 </head>
 
 <body>
-
 <div class="container">
 
 <h1>Bitcoin Live Price & Profit Calculator</h1>
@@ -150,19 +136,19 @@ input:focus, select:focus {
 <div class="card">
 
 <label>Select Currency</label>
-<select id="currency">
+<select id="currency" onchange="switchCurrency()">
   <option value="usd">USD ($)</option>
   <option value="idr">IDR (Rp)</option>
 </select>
 
 <label>Investment Amount</label>
-<input type="number" id="modal" placeholder="Example: 1000">
+<input type="text" id="modal" oninput="formatInput(this)">
 
-<label>Buy Price (Auto-filled from Live Price)</label>
-<input type="number" id="buyPrice">
+<label>Buy Price</label>
+<input type="text" id="buyPrice" oninput="formatInput(this)">
 
 <label>Current / Sell Price</label>
-<input type="number" id="currentPrice">
+<input type="text" id="currentPrice" oninput="formatInput(this)">
 
 <button onclick="calculate()" class="calc-btn">Calculate Profit</button>
 
@@ -170,23 +156,10 @@ input:focus, select:focus {
 
 </div>
 
-<div class="seo-text">
-<h2>What is a Bitcoin Profit Calculator?</h2>
-<p>
-A Bitcoin Profit Calculator helps investors estimate potential gains or losses based on Bitcoin's buy price and current market price.
-This tool is ideal for tracking returns and planning risk management strategies.
-</p>
-
-<p>
-For deeper crypto education including DCA strategy and risk management, visit 
-<a href="https://www.cryptokita.com" target="_blank" rel="noopener">CryptoKita.com</a>.
-</p>
-</div>
-
 <div class="footer-link">
-  <a href="https://www.cryptokita.com" target="_blank" rel="noopener">
-  Learn More About Bitcoin & Crypto →
-  </a>
+<a href="https://www.cryptokita.com" target="_blank" rel="noopener">
+Learn More About Bitcoin & Crypto →
+</a>
 </div>
 
 </div>
@@ -194,6 +167,56 @@ For deeper crypto education including DCA strategy and risk management, visit
 <script>
 let liveUSD = 0;
 let liveIDR = 0;
+
+function formatInput(input) {
+  let currency = document.getElementById("currency").value;
+  let value = input.value.replace(/\D/g, '');
+  if (!value) { input.value = ""; return; }
+
+  if(currency === "usd") {
+    input.value = Number(value).toLocaleString("en-US");
+  } else {
+    input.value = Number(value).toLocaleString("id-ID");
+  }
+}
+
+function getNumber(id){
+  return Number(document.getElementById(id).value.replace(/[^0-9]/g,'')) || 0;
+}
+
+function switchCurrency(){
+  if(document.getElementById("currency").value === "usd"){
+    document.getElementById("buyPrice").value = liveUSD.toLocaleString("en-US");
+    document.getElementById("currentPrice").value = liveUSD.toLocaleString("en-US");
+  } else {
+    document.getElementById("buyPrice").value = liveIDR.toLocaleString("id-ID");
+    document.getElementById("currentPrice").value = liveIDR.toLocaleString("id-ID");
+  }
+}
+
+function calculate() {
+  const currency = document.getElementById("currency").value;
+  const modal = getNumber("modal");
+  const buy = getNumber("buyPrice");
+  const current = getNumber("currentPrice");
+
+  if (!modal || !buy || !current) return;
+
+  const btcAmount = modal / buy;
+  const currentValue = btcAmount * current;
+  const profit = currentValue - modal;
+  const percent = ((profit / modal) * 100).toFixed(2);
+
+  const symbol = currency === "usd" ? "$" : "Rp ";
+  const locale = currency === "usd" ? "en-US" : "id-ID";
+  const profitClass = profit >= 0 ? "profit" : "loss";
+
+  document.getElementById("output").innerHTML =
+    "BTC Owned: " + btcAmount.toFixed(6) + " BTC<br>" +
+    "Current Value: " + symbol + currentValue.toLocaleString(locale) + "<br>" +
+    "<span class='"+profitClass+"'>Profit / Loss: " + symbol + profit.toLocaleString(locale) + "</span><br>" +
+    "Return: " + percent + "%";
+}
 
 async function fetchBTC() {
   try {
@@ -203,41 +226,14 @@ async function fetchBTC() {
     liveUSD = data.bitcoin.usd;
     liveIDR = data.bitcoin.idr;
 
-    document.getElementById("btcUsd").innerText = "$" + liveUSD.toLocaleString();
-    document.getElementById("btcIdr").innerText = "Rp " + liveIDR.toLocaleString();
+    document.getElementById("btcUsd").innerText = "$" + liveUSD.toLocaleString("en-US");
+    document.getElementById("btcIdr").innerText = "Rp " + liveIDR.toLocaleString("id-ID");
 
-    document.getElementById("buyPrice").value = liveUSD;
-    document.getElementById("currentPrice").value = liveUSD;
-
+    switchCurrency();
   } catch (error) {
     document.getElementById("btcUsd").innerText = "Error";
     document.getElementById("btcIdr").innerText = "Error";
   }
-}
-
-function calculate() {
-  const currency = document.getElementById("currency").value;
-  const modal = parseFloat(document.getElementById("modal").value);
-  const buy = parseFloat(document.getElementById("buyPrice").value);
-  const current = parseFloat(document.getElementById("currentPrice").value);
-
-  if (isNaN(modal) || isNaN(buy) || isNaN(current)) {
-    document.getElementById("output").innerText = "";
-    return;
-  }
-
-  const btcAmount = modal / buy;
-  const currentValue = btcAmount * current;
-  const profit = currentValue - modal;
-  const percent = ((profit / modal) * 100).toFixed(2);
-  const symbol = currency === "usd" ? "$" : "Rp ";
-  const profitClass = profit >= 0 ? "profit" : "loss";
-
-  document.getElementById("output").innerHTML =
-    "BTC Owned: " + btcAmount.toFixed(6) + " BTC<br>" +
-    "Current Value: " + symbol + currentValue.toLocaleString() + "<br>" +
-    "<span class='" + profitClass + "'>Profit / Loss: " + symbol + profit.toLocaleString() + "</span><br>" +
-    "Return: " + percent + "%";
 }
 
 fetchBTC();
